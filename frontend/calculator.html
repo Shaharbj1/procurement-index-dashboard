@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Calculator — Procurement Index Dashboard</title>
+  <link rel="stylesheet" href="/css/style.css"/>
+  <link rel="stylesheet" media="print" href="/css/print.css"/>
+</head>
+<body>
+
+<nav class="nav">
+  <span class="nav-brand">📊 ProcureIndex</span>
+  <div class="nav-links">
+    <a href="/" data-page="dashboard">Dashboard</a>
+    <a href="/calculator.html" data-page="calculator" class="active">Calculator</a>
+    <a href="/upload.html" data-page="upload">Upload Data</a>
+    <a href="/executive-review.html" data-page="review">Executive Review</a>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="page-title">% Change Calculator</div>
+
+  <div class="card">
+    <div class="calc-form">
+      <div class="form-group">
+        <label for="calc-index">Index</label>
+        <select id="calc-index">
+          <option value="">— Select index —</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="calc-start">Start Period (YYYY-MM)</label>
+        <input type="month" id="calc-start" placeholder="2022-01"/>
+      </div>
+      <div class="form-group">
+        <label for="calc-end">End Period (YYYY-MM)</label>
+        <input type="month" id="calc-end" placeholder="2024-12"/>
+      </div>
+      <div class="form-group">
+        <label>&nbsp;</label>
+        <button class="btn btn-primary" id="calc-btn" style="height:38px">Calculate</button>
+      </div>
+    </div>
+
+    <div class="warn-msg" id="calc-warn"></div>
+    <div class="error-msg" id="calc-error"></div>
+  </div>
+
+  <!-- Result card -->
+  <div class="result-card" id="result-card">
+    <div class="result-meta" id="result-meta"></div>
+    <div class="result-big" id="result-pct"></div>
+    <div class="result-abs" id="result-abs"></div>
+
+    <div class="result-details">
+      <div class="result-detail-item">
+        <div class="label">Start Period</div>
+        <div class="val" id="res-start-period"></div>
+      </div>
+      <div class="result-detail-item">
+        <div class="label">Start Value</div>
+        <div class="val" id="res-start-val"></div>
+      </div>
+      <div class="result-detail-item">
+        <div class="label">End Period</div>
+        <div class="val" id="res-end-period"></div>
+      </div>
+      <div class="result-detail-item">
+        <div class="label">End Value</div>
+        <div class="val" id="res-end-val"></div>
+      </div>
+    </div>
+
+    <div class="sparkline-wrap">
+      <canvas id="sparkline-chart"></canvas>
+    </div>
+
+    <div class="calc-actions">
+      <button class="btn btn-secondary" id="btn-copy">📋 Copy result</button>
+      <div class="split-dropdown" id="download-wrap" style="display:none">
+        <div class="split-btn">
+          <button class="btn btn-primary" id="btn-dl-xlsx">⬇ Excel</button>
+          <div class="btn-divider"></div>
+          <button class="btn btn-primary btn-arrow" id="btn-dl-toggle">▾</button>
+        </div>
+        <div class="split-dropdown-menu" id="dl-menu">
+          <button id="dl-xlsx">Excel (.xlsx)</button>
+          <button id="dl-csv">CSV (.csv)</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script type="module" src="/js/calculator.js"></script>
+</body>
+</html>

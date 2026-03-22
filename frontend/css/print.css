@@ -1,0 +1,66 @@
+/* print.css — loaded ONLY for print media */
+@media print {
+  /* Hide nav, buttons, filters */
+  .nav,
+  .filter-bar,
+  .review-header-actions,
+  .review-panel-header button,
+  .btn,
+  .split-btn,
+  .split-dropdown,
+  .toast-container {
+    display: none !important;
+  }
+
+  body {
+    background: #fff;
+    color: #000;
+    font-size: 11pt;
+  }
+
+  .page {
+    max-width: 100%;
+    padding: 0;
+    margin: 0;
+  }
+
+  .review-panel {
+    box-shadow: none;
+    border: 1px solid #ccc;
+    page-break-inside: avoid;
+  }
+
+  /* Page break before each segment panel */
+  .review-panel + .review-panel {
+    page-break-before: always;
+  }
+
+  .seg-cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .seg-card {
+    box-shadow: none;
+    border: 1px solid #ccc;
+  }
+
+  .review-panel-body {
+    grid-template-columns: 1fr;
+  }
+
+  .review-panel-chart {
+    height: 200px;
+    border-right: none;
+    border-bottom: 1px solid #ccc;
+  }
+
+  .review-panel-table {
+    max-height: none;
+    overflow: visible;
+  }
+
+  a { color: #000; }
+
+  .pos { color: #1B5E20; }
+  .neg { color: #B71C1C; }
+}

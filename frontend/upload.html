@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Upload Data — Procurement Index Dashboard</title>
+  <link rel="stylesheet" href="/css/style.css"/>
+  <link rel="stylesheet" media="print" href="/css/print.css"/>
+</head>
+<body>
+
+<nav class="nav">
+  <span class="nav-brand">📊 ProcureIndex</span>
+  <div class="nav-links">
+    <a href="/" data-page="dashboard">Dashboard</a>
+    <a href="/calculator.html" data-page="calculator">Calculator</a>
+    <a href="/upload.html" data-page="upload" class="active">Upload Data</a>
+    <a href="/executive-review.html" data-page="review">Executive Review</a>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="flex-between mb-16">
+    <div class="page-title" style="margin-bottom:0">Upload Data</div>
+    <button class="btn btn-secondary btn-sm" id="btn-template">⬇ Download Template CSV</button>
+  </div>
+
+  <!-- Drop zone -->
+  <div class="drop-zone" id="drop-zone">
+    <div class="drop-zone-icon">📂</div>
+    <div class="drop-zone-text">
+      Drag &amp; drop your CSV or Excel file here,<br/>
+      or <strong id="browse-trigger">browse to select</strong>
+    </div>
+    <div style="margin-top:10px;font-size:.78rem;color:var(--text-muted)">Accepts: .csv, .xlsx — Standard CSV, Eurostat export, BLS export</div>
+    <input type="file" id="file-input" accept=".csv,.xlsx,.xls"/>
+  </div>
+
+  <!-- Preview section -->
+  <div class="preview-section" id="preview-section">
+    <div class="card">
+      <div class="upload-meta">
+        <div class="badge-info"><strong id="meta-file">—</strong></div>
+        <div class="badge-info">Format: <strong id="meta-format">—</strong></div>
+        <div class="badge-info">Total rows: <strong id="meta-rows">—</strong></div>
+      </div>
+
+      <div style="overflow-x:auto">
+        <table id="preview-table" style="font-size:.84rem;min-width:400px">
+          <thead>
+            <tr>
+              <th>Index ID</th>
+              <th>Period</th>
+              <th>Value</th>
+            </tr>
+          </thead>
+          <tbody id="preview-tbody"></tbody>
+        </table>
+      </div>
+      <div style="font-size:.8rem;color:var(--text-muted);margin-top:8px" id="preview-note"></div>
+
+      <div class="confirm-actions">
+        <button class="btn btn-primary" id="btn-confirm">✔ Confirm Import</button>
+        <button class="btn btn-secondary" id="btn-cancel">✕ Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Success / Error -->
+  <div class="success-msg" id="success-msg"></div>
+  <div class="error-msg" id="upload-error" style="margin-top:12px"></div>
+
+  <!-- Upload History -->
+  <div class="card mt-24">
+    <div style="font-size:1rem;font-weight:600;color:var(--navy);margin-bottom:14px">Upload History</div>
+    <table class="history-table" style="width:100%;border-collapse:collapse;font-size:.85rem">
+      <thead>
+        <tr>
+          <th style="padding:8px 12px;text-align:left;background:var(--bg-alt);border-bottom:1px solid var(--border)">Filename</th>
+          <th style="padding:8px 12px;text-align:left;background:var(--bg-alt);border-bottom:1px solid var(--border)">Date</th>
+          <th style="padding:8px 12px;text-align:left;background:var(--bg-alt);border-bottom:1px solid var(--border)">Format</th>
+          <th style="padding:8px 12px;text-align:right;background:var(--bg-alt);border-bottom:1px solid var(--border)">Rows Added</th>
+          <th style="padding:8px 12px;text-align:right;background:var(--bg-alt);border-bottom:1px solid var(--border)">Rows Updated</th>
+          <th style="padding:8px 12px;text-align:left;background:var(--bg-alt);border-bottom:1px solid var(--border)">Status</th>
+        </tr>
+      </thead>
+      <tbody id="history-tbody">
+        <tr><td colspan="6" style="padding:20px;text-align:center;color:var(--text-muted)">No uploads yet in this session.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script type="module" src="/js/upload.js"></script>
+</body>
+</html>

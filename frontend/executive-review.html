@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Executive Review — Procurement Index Dashboard</title>
+  <link rel="stylesheet" href="/css/style.css"/>
+  <link rel="stylesheet" media="print" href="/css/print.css"/>
+</head>
+<body>
+
+<nav class="nav">
+  <span class="nav-brand">📊 ProcureIndex</span>
+  <div class="nav-links">
+    <a href="/" data-page="dashboard">Dashboard</a>
+    <a href="/calculator.html" data-page="calculator">Calculator</a>
+    <a href="/upload.html" data-page="upload">Upload Data</a>
+    <a href="/executive-review.html" data-page="review" class="active">Executive Review</a>
+  </div>
+</nav>
+
+<div class="page">
+  <!-- Zone 1 — Header -->
+  <div class="review-header">
+    <div>
+      <div class="page-title" style="margin-bottom:4px">Global Procurement Index — Executive Review</div>
+      <div class="review-asof" id="review-asof">As of —</div>
+    </div>
+    <div class="review-header-actions">
+      <button class="btn btn-secondary" id="btn-copy-all">📋 Copy to Clipboard</button>
+      <button class="btn btn-primary" id="btn-print">🖨 Download PDF</button>
+    </div>
+  </div>
+
+  <!-- Zone 2 — Segment summary cards -->
+  <div class="seg-cards-grid" id="seg-cards-grid">
+    <div style="text-align:center;padding:40px;color:var(--text-muted);grid-column:1/-1">Loading…</div>
+  </div>
+
+  <!-- Zone 3 — Segment trend panels -->
+  <div id="seg-panels"></div>
+
+  <!-- Zone 4 — Footer -->
+  <div class="review-footer" id="review-footer">
+    Data is sourced from Eurostat, BLS, Fastmarkets, EUWID, ICIS, Wood McKenzie, and other public/paid sources via manual CSV upload.
+    Index values reflect the latest available period at time of export.<br/>
+    <span id="footer-timestamp"></span>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script type="module" src="/js/review.js"></script>
+</body>
+</html>

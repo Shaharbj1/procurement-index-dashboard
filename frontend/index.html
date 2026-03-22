@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Procurement Index Dashboard</title>
+  <link rel="stylesheet" href="/css/style.css"/>
+  <link rel="stylesheet" media="print" href="/css/print.css"/>
+</head>
+<body>
+
+<nav class="nav">
+  <span class="nav-brand">📊 ProcureIndex</span>
+  <div class="nav-links">
+    <a href="/" data-page="dashboard" class="active">Dashboard</a>
+    <a href="/calculator.html" data-page="calculator">Calculator</a>
+    <a href="/upload.html" data-page="upload">Upload Data</a>
+    <a href="/executive-review.html" data-page="review">Executive Review</a>
+  </div>
+</nav>
+
+<div class="page">
+  <!-- KPI Bar -->
+  <div class="kpi-bar">
+    <div class="kpi-card">
+      <div class="kpi-label">Total Active Indices</div>
+      <div class="kpi-value" id="kpi-total">—</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Last Upload</div>
+      <div class="kpi-value" id="kpi-last-upload" style="font-size:1.1rem">—</div>
+    </div>
+    <div class="kpi-card" style="border-left-color:var(--positive)">
+      <div class="kpi-label">Highest MoM Change</div>
+      <div class="kpi-value pos" id="kpi-highest">—</div>
+      <div class="kpi-sub" id="kpi-highest-name"></div>
+    </div>
+    <div class="kpi-card" style="border-left-color:var(--negative)">
+      <div class="kpi-label">Lowest MoM Change</div>
+      <div class="kpi-value neg" id="kpi-lowest">—</div>
+      <div class="kpi-sub" id="kpi-lowest-name"></div>
+    </div>
+  </div>
+
+  <!-- Filter Bar -->
+  <div class="filter-bar">
+    <label>Segment</label>
+    <select id="f-segment">
+      <option value="">All</option>
+      <option value="secondary_packaging">Secondary packaging</option>
+      <option value="emn">EMN</option>
+      <option value="logistics">Logistics</option>
+      <option value="primary_pkg_md">Primary pkg &amp; MD</option>
+      <option value="api_chemicals">API &amp; chemicals</option>
+    </select>
+    <label>Source</label>
+    <select id="f-source">
+      <option value="">All</option>
+      <option value="eurostat">Eurostat</option>
+      <option value="bls">BLS</option>
+      <option value="manual">Manual</option>
+      <option value="Fastmarkets">Fastmarkets</option>
+      <option value="EUWID">EUWID</option>
+      <option value="ICIS">ICIS</option>
+    </select>
+    <label>Category</label>
+    <select id="f-category">
+      <option value="">All</option>
+      <option value="general">General</option>
+      <option value="chemicals">Chemicals</option>
+      <option value="plastics">Plastics</option>
+      <option value="metals">Metals</option>
+      <option value="energy">Energy</option>
+      <option value="labor">Labor</option>
+      <option value="logistics">Logistics</option>
+    </select>
+    <input type="text" id="f-search" placeholder="🔍  Search index name…"/>
+    <div style="margin-left:auto">
+      <div class="split-dropdown">
+        <div class="split-btn">
+          <button class="btn btn-primary" id="btn-download-xlsx">⬇ Export Excel</button>
+          <div class="btn-divider"></div>
+          <button class="btn btn-primary btn-arrow" id="btn-download-toggle">▾</button>
+        </div>
+        <div class="split-dropdown-menu" id="download-menu">
+          <button onclick="downloadDashboard('xlsx')">Excel (.xlsx)</button>
+          <button onclick="downloadDashboard('csv')">CSV (.csv)</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table + Right Panel -->
+  <div class="dashboard-layout">
+    <div class="table-wrap">
+      <table id="indices-table">
+        <thead>
+          <tr>
+            <th>Index Name</th>
+            <th>Segment</th>
+            <th>Source</th>
+            <th>Latest Value</th>
+            <th>Latest Period</th>
+            <th>MoM %</th>
+            <th>YoY %</th>
+          </tr>
+        </thead>
+        <tbody id="indices-tbody">
+          <tr><td colspan="7" class="text-center" style="padding:32px;color:var(--text-muted)">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="right-panel" id="right-panel">
+      <div class="panel-placeholder" id="panel-placeholder">
+        ← Click an index row to see its chart and recent data
+      </div>
+      <div id="panel-content" style="display:none">
+        <h3 id="panel-title"></h3>
+        <div class="panel-period" id="panel-period"></div>
+        <div class="chart-wrap">
+          <canvas id="panel-chart"></canvas>
+        </div>
+        <div style="font-size:.8rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Last 12 months</div>
+        <table class="mini-table">
+          <thead><tr><th>Period</th><th>Value</th><th>MoM %</th><th>YoY %</th></tr></thead>
+          <tbody id="mini-tbody"></tbody>
+        </table>
+        <a id="open-in-calc" href="/calculator.html" class="btn btn-sky btn-sm" style="width:100%;justify-content:center">Open in Calculator →</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script type="module" src="/js/dashboard.js"></script>
+</body>
+</html>
