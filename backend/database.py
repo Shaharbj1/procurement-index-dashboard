@@ -238,10 +238,26 @@ def init_db():
         # Seed 52 regional indices (idempotent — uses INSERT OR IGNORE)
         _seed_regional(conn)
 
-        # Migrate emn_labor_de to quarterly (Eurostat LCI source)
+        # Migrate emn_labor_de to quarterly (Eurostat LCI lc_lci_r2_q 2020=100)
         conn.execute(
-            "UPDATE indices SET period_type='quarterly', source_url=? WHERE id='emn_labor_de'",
-            ("https://ec.europa.eu/eurostat/databrowser/view/lc_lci_lev",),
+            "UPDATE indices SET period_type='quarterly', base_year='2020=100', source_url=? WHERE id='emn_labor_de'",
+            ("https://ec.europa.eu/eurostat/databrowser/view/lc_lci_r2_q",),
+        )
+        # prim_lci_eu is quarterly (not monthly) and uses lc_lci_r2_q (2020=100)
+        conn.execute(
+            "UPDATE indices SET period_type='quarterly', base_year='2020=100', source_url=? WHERE id='prim_lci_eu'",
+            ("https://ec.europa.eu/eurostat/databrowser/view/lc_lci_r2_q",),
+        )
+        # Fix AKI base year (SCB 2008=100, not 2015=100)
+        conn.execute(
+            "UPDATE indices SET base_year='2008=100', source='scb' WHERE id IN ('emn_aki_blue','emn_aki_white')",
+        )
+        # Fix BLS index metadata: prim_ppi_us_bls uses WPSFD4111 (not 1982=100 base)
+        conn.execute(
+            "UPDATE indices SET base_year='1982=100', source_url='https://www.bls.gov/ppi/', name='PPI Finished Goods — BLS' WHERE id='prim_ppi_us_bls'",
+        )
+        conn.execute(
+            "UPDATE indices SET base_year='1982=100', source_url='https://www.bls.gov/ppi/', name='PPI Intermediate Materials — BLS' WHERE id='prim_ppi_int_bls'",
         )
 
 
