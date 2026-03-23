@@ -125,3 +125,14 @@ export function navActive(page) {
 export function downloadUrl(url) {
   window.location.href = url;
 }
+
+/** Render a small external-link icon for a source_url (returns '' if null) */
+export function sourceLink(url) {
+  if (!url) return '';
+  const escaped = String(url).replace(/"/g, '&quot;');
+  return `<a href="${escaped}" target="_blank" rel="noopener noreferrer" class="source-link" title="Open data source">
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5">
+      <path d="M5 2H2v8h8V7M7 1h4v4M11 1L6 6"/>
+    </svg>
+  </a>`;
+}

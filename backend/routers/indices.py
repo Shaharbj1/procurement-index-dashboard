@@ -13,6 +13,7 @@ SEGMENT_LABELS = {
     "logistics":           "Logistics",
     "primary_pkg_md":      "Primary pkg & MD",
     "api_chemicals":       "API & chemicals",
+    "regional":            "Regional",
 }
 
 
@@ -22,10 +23,12 @@ def _row_to_dict(row) -> dict:
 
 @router.get("/indices")
 def list_indices(
-    segment:  Optional[str] = Query(None),
-    source:   Optional[str] = Query(None),
-    category: Optional[str] = Query(None),
-    q:        Optional[str] = Query(None),
+    segment:     Optional[str] = Query(None),
+    source:      Optional[str] = Query(None),
+    category:    Optional[str] = Query(None),
+    q:           Optional[str] = Query(None),
+    country_iso: Optional[str] = Query(None),
+    period_type: Optional[str] = Query(None),
 ):
     """Return all active indices with latest value, MoM %, YoY %, last period."""
     with get_connection() as conn:
@@ -33,6 +36,7 @@ def list_indices(
             SELECT
                 i.id, i.name, i.segment, i.source, i.category,
                 i.unit, i.base_year, i.paid_source, i.last_updated, i.active,
+                i.source_url, i.period_type, i.country_iso,
                 iv.value       AS latest_value,
                 iv.period      AS latest_period,
                 iv.mom_change,
@@ -58,6 +62,12 @@ def list_indices(
         if q:
             sql += " AND LOWER(i.name) LIKE ?"
             params.append(f"%{q.lower()}%")
+        if country_iso:
+            sql += " AND i.country_iso = ?"
+            params.append(country_iso)
+        if period_type:
+            sql += " AND i.period_type = ?"
+            params.append(period_type)
         sql += " ORDER BY i.segment, i.name"
         rows = conn.execute(sql, params).fetchall()
         return [_row_to_dict(r) for r in rows]
@@ -65,10 +75,13 @@ def list_indices(
 
 @router.get("/indices/{index_id}")
 def get_index(index_id: str):
-    """Return single index metadata + last 36 months of values."""
+    """Return single index metadata + last 36 periods of values."""
     with get_connection() as conn:
         meta = conn.execute(
-            "SELECT * FROM indices WHERE id = ?", (index_id,)
+            """SELECT id, name, segment, source, category, unit, base_year,
+                      paid_source, last_updated, active, source_url, period_type, country_iso
+               FROM indices WHERE id = ?""",
+            (index_id,),
         ).fetchone()
         if not meta:
             raise HTTPException(status_code=404, detail=f"Index '{index_id}' not found")

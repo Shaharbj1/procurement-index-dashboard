@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Regional — Procurement Index Dashboard</title>
+  <link rel="stylesheet" href="/css/style.css"/>
+  <link rel="stylesheet" media="print" href="/css/print.css"/>
+</head>
+<body>
+
+<nav class="nav">
+  <span class="nav-brand">📊 ProcureIndex</span>
+  <div class="nav-links">
+    <a href="/" data-page="dashboard">Dashboard</a>
+    <a href="/calculator.html" data-page="calculator">Calculator</a>
+    <a href="/upload.html" data-page="upload">Upload Data</a>
+    <a href="/regional.html" data-page="regional" class="active">Regional</a>
+    <a href="/executive-review.html" data-page="review">Executive Review</a>
+    <a href="/admin.html" data-page="admin">Admin</a>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="page-title">Regional Index Explorer</div>
+
+  <!-- Controls -->
+  <div class="card" style="margin-bottom:16px">
+    <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center">
+      <!-- Index type toggles -->
+      <div class="toggle-group" id="type-toggles">
+        <button class="toggle-btn active" data-type="ppi">PPI</button>
+        <button class="toggle-btn" data-type="cpi">CPI</button>
+        <button class="toggle-btn" data-type="lci">LCI</button>
+        <button class="toggle-btn" data-type="energy">Energy</button>
+      </div>
+
+      <!-- Time range -->
+      <div class="toggle-group" id="range-toggles">
+        <button class="toggle-btn" data-periods="12">12 periods</button>
+        <button class="toggle-btn active" data-periods="24">24 periods</button>
+        <button class="toggle-btn" data-periods="36">36 periods</button>
+      </div>
+
+      <!-- Download -->
+      <div style="margin-left:auto">
+        <div class="split-dropdown" id="reg-download-wrap">
+          <div class="split-btn">
+            <button class="btn btn-primary" id="reg-btn-dl-xlsx">⬇ Excel</button>
+            <div class="btn-divider"></div>
+            <button class="btn btn-primary btn-arrow" id="reg-btn-dl-toggle">▾</button>
+          </div>
+          <div class="split-dropdown-menu" id="reg-dl-menu">
+            <button id="reg-dl-xlsx">Excel (.xlsx)</button>
+            <button id="reg-dl-csv">CSV (.csv)</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading / error -->
+  <div id="reg-loading" style="text-align:center;padding:40px;color:var(--text-muted)">Loading…</div>
+  <div id="reg-error"   style="display:none;padding:16px;color:var(--negative);background:#FFF5F5;border-radius:var(--radius);margin-bottom:16px"></div>
+
+  <!-- Chart -->
+  <div class="card" id="reg-chart-card" style="display:none;margin-bottom:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div class="admin-section-title" id="reg-chart-title">PPI by Country</div>
+      <div style="font-size:.8rem;color:var(--text-muted)" id="reg-period-type-label"></div>
+    </div>
+    <div style="position:relative;height:360px">
+      <canvas id="reg-chart"></canvas>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="card" id="reg-table-card" style="display:none">
+    <div class="admin-section-title" style="margin-bottom:12px" id="reg-table-title">Country Comparison</div>
+    <div style="overflow-x:auto">
+      <table id="reg-table" style="width:100%;border-collapse:collapse;font-size:.84rem">
+        <thead id="reg-thead"></thead>
+        <tbody id="reg-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script type="module" src="/js/regional.js"></script>
+</body>
+</html>

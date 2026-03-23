@@ -1,18 +1,30 @@
-import { api, showToast, fmtPct, fmtVal, pctClass } from './api.js';
+import { api, showToast, fmtPct, fmtVal, pctClass, sourceLink } from './api.js';
 
 const COLORS = [
   '#4A7FAA','#2E7D32','#E65100','#6A1B9A','#00695C',
   '#1565C0','#C62828','#F57F17','#37474F','#558B2F',
 ];
 
-let reviewData = null;
-const panelCharts = {}; // segment key → Chart instance
+const REGIONAL_COLOR = '#7B1FA2';
+
+let reviewData   = null;
+let regionalData = {};   // type → payload from /api/regional/summary
+const panelCharts = {}; // chart id → Chart instance
 
 // ── Load ───────────────────────────────────────────────────────────────────
 async function load() {
   try {
-    reviewData = await api.get('/review/summary');
+    const [main, ppi, cpi, lci, energy] = await Promise.all([
+      api.get('/review/summary'),
+      api.get('/regional/summary?type=ppi&periods=24').catch(() => null),
+      api.get('/regional/summary?type=cpi&periods=24').catch(() => null),
+      api.get('/regional/summary?type=lci&periods=24').catch(() => null),
+      api.get('/regional/summary?type=energy&periods=24').catch(() => null),
+    ]);
+    reviewData   = main;
+    regionalData = { ppi, cpi, lci, energy };
     render(reviewData);
+    renderRegionalPanel();
   } catch (err) {
     showToast('Failed to load review data: ' + err.message, 'error');
   }
@@ -133,7 +145,7 @@ function renderPanels(segments) {
             <tbody>
               ${seg.indices.map(idx => `
                 <tr style="border-bottom:1px solid var(--border)">
-                  <td style="padding:5px 10px">${escHtml(idx.name)}</td>
+                  <td style="padding:5px 10px"><span class="index-name-cell">${escHtml(idx.name)}${sourceLink(idx.source_url)}</span></td>
                   <td style="padding:5px 10px;text-align:right">${idx.latest_value != null ? fmtVal(idx.latest_value,2) : '—'}</td>
                   <td style="padding:5px 10px;text-align:right">${idx.latest_period || '—'}</td>
                   <td style="padding:5px 10px;text-align:right" class="${pctClass(idx.mom)}">${fmtPct(idx.mom)}</td>
@@ -257,6 +269,187 @@ function slugify(str) {
 }
 function escHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Regional Panel ─────────────────────────────────────────────────────────
+function renderRegionalPanel() {
+  const container = document.getElementById('seg-panels');
+  const REGIONAL_BADGE = REGIONAL_COLOR;
+  const panelTint = 'rgba(123,31,162,.05)';
+
+  // ── Summary card ──────────────────────────────────────────────────────────
+  const ppiData   = regionalData.ppi;
+  const euAvgSeries = ppiData?.series?.find(s => s.country === 'EU_AVG');
+  const euLatestPt  = euAvgSeries ? [...euAvgSeries.data].reverse().find(d => d.value != null) : null;
+
+  // Build REGIONAL card in seg-cards-grid
+  const grid = document.getElementById('seg-cards-grid');
+  const regCardEl = document.createElement('div');
+  regCardEl.className = 'seg-card';
+  regCardEl.style.borderLeftColor = REGIONAL_BADGE;
+  regCardEl.innerHTML = `
+    <div class="seg-card-info">
+      <div class="seg-card-title" style="color:${REGIONAL_BADGE}">Regional</div>
+      <div style="font-size:.8rem;color:var(--text-muted)">52 indices tracked</div>
+      <div class="seg-card-kpis">
+        <div class="seg-kpi">
+          <span class="label">EU PPI Latest</span>
+          <span class="val">${euLatestPt ? euLatestPt.value.toFixed(2) : '—'}</span>
+        </div>
+        <div class="seg-kpi">
+          <span class="label">Period</span>
+          <span class="val" style="font-size:.8rem">${euLatestPt ? euLatestPt.period : '—'}</span>
+        </div>
+      </div>
+    </div>
+    <div class="seg-trend neu">→</div>
+    <div class="seg-sparkline-wrap">
+      <canvas id="spark-regional"></canvas>
+    </div>`;
+  grid.appendChild(regCardEl);
+
+  // Sparkline — EU PPI avg
+  if (euAvgSeries) {
+    const sparkPts = euAvgSeries.data.filter(d => d.value != null).slice(-12);
+    new Chart(document.getElementById('spark-regional').getContext('2d'), {
+      type: 'line',
+      data: {
+        labels: sparkPts.map(d => d.period),
+        datasets: [{ data: sparkPts.map(d => d.value), borderColor: REGIONAL_BADGE,
+                     borderWidth: 2, pointRadius: 0, fill: false, tension: 0.4 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: false,
+        plugins: { legend: { display: false }, tooltip: { enabled: false } },
+        scales: { x: { display: false }, y: { display: false } },
+      },
+    });
+  }
+
+  // ── Trend panel ───────────────────────────────────────────────────────────
+  const panel = document.createElement('div');
+  panel.className = 'review-panel';
+  panel.style.background = panelTint;
+
+  const TYPES = ['ppi','cpi','lci','energy'];
+  const TYPE_LABELS = { ppi:'PPI', cpi:'CPI', lci:'LCI', energy:'Energy' };
+
+  // Build 4 mini-chart canvases
+  const miniChartsHtml = TYPES.map(t => `
+    <div style="flex:1;min-width:200px">
+      <div style="font-weight:600;font-size:.82rem;color:${REGIONAL_BADGE};margin-bottom:6px;text-align:center">${TYPE_LABELS[t]}</div>
+      <div style="position:relative;height:140px"><canvas id="reg-mini-${t}"></canvas></div>
+    </div>`).join('');
+
+  // Build comparison table rows: EU Avg + CH + IL for each type
+  const tableRows = TYPES.map(t => {
+    const payload = regionalData[t];
+    if (!payload) return '';
+    const eu = payload.series.find(s => s.country === 'EU_AVG');
+    const ch = payload.series.find(s => s.country === 'CH');
+    const il = payload.series.find(s => s.country === 'IL');
+    const latestVal = (s) => {
+      if (!s) return null;
+      const pt = [...s.data].reverse().find(d => d.value != null);
+      return pt ? { value: pt.value, period: pt.period, mom: pt.mom_change, yoy: pt.yoy_change } : null;
+    };
+    const euPt = latestVal(eu);
+    const chPt = latestVal(ch);
+    const ilPt = latestVal(il);
+    const row = (label, pt, extraStyle='') => `
+      <tr style="border-bottom:1px solid var(--border);${extraStyle}">
+        <td style="padding:5px 10px;font-weight:600">${label}</td>
+        <td style="padding:5px 10px;font-size:.8rem;color:var(--text-muted)">${TYPE_LABELS[t]}</td>
+        <td style="padding:5px 10px;text-align:right">${pt ? pt.value.toFixed(2) : '—'}</td>
+        <td style="padding:5px 10px;text-align:right;font-size:.8rem;color:var(--text-muted)">${pt ? pt.period : '—'}</td>
+        <td style="padding:5px 10px;text-align:right" class="${pt?.mom != null ? pctClass(pt.mom) : ''}">${pt?.mom != null ? fmtPct(pt.mom) : '—'}</td>
+        <td style="padding:5px 10px;text-align:right" class="${pt?.yoy != null ? pctClass(pt.yoy) : ''}">${pt?.yoy != null ? fmtPct(pt.yoy) : '—'}</td>
+      </tr>`;
+    return row('🇪🇺 EU Avg', euPt, 'background:#F3E5F5') +
+           row('🇨🇭 Switzerland', chPt) +
+           row('🇮🇱 Israel', ilPt);
+  }).join('');
+
+  panel.innerHTML = `
+    <div class="review-panel-header">
+      <div class="review-panel-title">
+        <span class="badge" style="background:${REGIONAL_BADGE}">Regional</span>
+        <span style="font-size:.85rem;color:var(--text-muted)">52 indices — 13 countries</span>
+      </div>
+      <a href="/regional.html" class="btn btn-secondary btn-sm" style="display:inline-flex">Open Explorer →</a>
+    </div>
+    <div class="review-panel-body" style="flex-direction:column;gap:20px">
+      <div style="display:flex;gap:16px;flex-wrap:wrap">${miniChartsHtml}</div>
+      <div class="review-panel-table">
+        <table style="width:100%;border-collapse:collapse;font-size:.82rem">
+          <thead>
+            <tr>
+              <th style="padding:6px 10px;background:var(--bg-alt);text-align:left">Country</th>
+              <th style="padding:6px 10px;background:var(--bg-alt);text-align:left">Type</th>
+              <th style="padding:6px 10px;background:var(--bg-alt);text-align:right">Latest</th>
+              <th style="padding:6px 10px;background:var(--bg-alt);text-align:right">Period</th>
+              <th style="padding:6px 10px;background:var(--bg-alt);text-align:right">MoM%</th>
+              <th style="padding:6px 10px;background:var(--bg-alt);text-align:right">YoY%</th>
+            </tr>
+          </thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+      </div>
+    </div>`;
+
+  container.appendChild(panel);
+
+  // Render mini charts
+  TYPES.forEach(t => {
+    const payload = regionalData[t];
+    if (!payload) return;
+    const eu = payload.series.find(s => s.country === 'EU_AVG');
+    const il = payload.series.find(s => s.country === 'IL');
+    const ch = payload.series.find(s => s.country === 'CH');
+
+    const toDataset = (s, color, dashed=false) => {
+      if (!s) return null;
+      const vm = {}; s.data.forEach(d => { vm[d.period] = d.value; });
+      const pts = payload.periods.slice(-16);
+      return {
+        label: s.country_name || s.country,
+        data: pts.map(p => vm[p] ?? null),
+        borderColor: color,
+        backgroundColor: 'transparent',
+        borderWidth: dashed ? 2 : 1.5,
+        borderDash: dashed ? [5,3] : [],
+        pointRadius: 1,
+        tension: 0.25,
+        spanGaps: true,
+      };
+    };
+
+    const labels   = payload.periods.slice(-16);
+    const datasets = [
+      toDataset(eu, REGIONAL_BADGE, true),
+      toDataset(ch, '#0277BD'),
+      toDataset(il, '#2E7D32'),
+    ].filter(Boolean);
+
+    const canvas = document.getElementById(`reg-mini-${t}`);
+    if (!canvas) return;
+    new Chart(canvas.getContext('2d'), {
+      type: 'line',
+      data: { labels, datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: false,
+        plugins: {
+          legend: { display: true, position: 'bottom',
+                    labels: { font: { size: 8 }, boxWidth: 8, padding: 4 } },
+          tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y != null ? ctx.parsed.y.toFixed(2) : '—'}` } },
+        },
+        scales: {
+          x: { ticks: { font: { size: 8 }, maxRotation: 45, autoSkip: true, maxTicksLimit: 8 }},
+          y: { ticks: { font: { size: 8 }}},
+        },
+      },
+    });
+  });
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────

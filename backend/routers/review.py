@@ -44,7 +44,7 @@ def review_summary():
         for seg in SEGMENT_META:
             seg_key = seg["key"]
 
-            # All active indices in this segment
+            # All active indices in this segment (exclude regional from standard panels)
             indices_rows = conn.execute(
                 "SELECT id, name, paid_source FROM indices WHERE segment=? AND active=1",
                 (seg_key,),
@@ -95,9 +95,15 @@ def review_summary():
                 mom_3 = _avg(mom_vals[:3])
                 mom_6 = _avg(mom_vals[:6])
 
+                idx_meta = conn.execute(
+                    "SELECT source_url FROM indices WHERE id=?", (idx_id,)
+                ).fetchone()
+                source_url = idx_meta["source_url"] if idx_meta else None
+
                 segment_indices.append({
                     "id":             idx_id,
                     "name":           idx_name,
+                    "source_url":     source_url,
                     "latest_value":   latest["value"]      if latest else None,
                     "latest_period":  latest["period"]     if latest else None,
                     "mom":            mom,

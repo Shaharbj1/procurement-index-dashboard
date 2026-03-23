@@ -1,4 +1,4 @@
-import { api, showToast, fmtPct, fmtVal, pctClass, segBadge, sourceBadge, downloadUrl } from './api.js';
+import { api, showToast, fmtPct, fmtVal, pctClass, segBadge, sourceBadge, downloadUrl, sourceLink } from './api.js';
 
 let allIndices = [];
 let panelChart = null;
@@ -51,7 +51,7 @@ function renderTable(data) {
     const momCls   = pctClass(idx.mom_change);
     const yoyCls   = pctClass(idx.yoy_change);
     return `<tr data-id="${idx.id}" class="${selectedId === idx.id ? 'selected' : ''}">
-      <td><strong>${escHtml(idx.name)}</strong>${lockIcon}</td>
+      <td><span class="index-name-cell"><strong>${escHtml(idx.name)}</strong>${lockIcon}${sourceLink(idx.source_url)}</span></td>
       <td>${segBadge(idx.segment)}</td>
       <td>${sourceBadge(idx.source)}</td>
       <td>${idx.latest_value != null ? fmtVal(idx.latest_value, 2) : '—'}</td>
@@ -79,7 +79,8 @@ async function openPanel(indexId) {
 
   try {
     const detail = await api.get(`/indices/${indexId}`);
-    document.getElementById('panel-title').textContent = detail.name;
+    document.getElementById('panel-title').innerHTML =
+      `<span class="index-name-cell">${escHtml(detail.name)}${sourceLink(detail.source_url)}</span>`;
     document.getElementById('panel-period').textContent =
       `${detail.base_year} | ${detail.unit} | Last: ${detail.series.length ? detail.series[detail.series.length-1].period : '—'}`;
 
@@ -144,11 +145,27 @@ function applyFilters() {
   filters.category = document.getElementById('f-category').value;
   filters.q        = document.getElementById('f-search').value.trim().toLowerCase();
 
+  // Show/hide regional sub-filters
+  const regSub = document.getElementById('regional-subfilters');
+  if (regSub) regSub.style.display = filters.segment === 'regional' ? '' : 'none';
+
+  const regType    = document.getElementById('f-reg-type')?.value    || '';
+  const regCountry = document.getElementById('f-reg-country')?.value || '';
+
   const filtered = allIndices.filter(idx => {
     if (filters.segment  && idx.segment  !== filters.segment)  return false;
     if (filters.source   && idx.source   !== filters.source)   return false;
     if (filters.category && idx.category !== filters.category) return false;
     if (filters.q && !idx.name.toLowerCase().includes(filters.q)) return false;
+    // Regional sub-filters (only active when segment === 'regional')
+    if (filters.segment === 'regional') {
+      if (regType) {
+        // index id format: reg_{type}_{iso_lower}
+        const typePart = idx.id.split('_')[1]; // ppi / cpi / lci / energy
+        if (typePart !== regType) return false;
+      }
+      if (regCountry && idx.country_iso !== regCountry) return false;
+    }
     return true;
   });
   renderTable(filtered);
@@ -158,6 +175,9 @@ function applyFilters() {
   document.getElementById(id).addEventListener('change', applyFilters);
 });
 document.getElementById('f-search').addEventListener('input', applyFilters);
+// Regional sub-filter listeners
+document.getElementById('f-reg-type')?.addEventListener('change', applyFilters);
+document.getElementById('f-reg-country')?.addEventListener('change', applyFilters);
 
 // ── Download ───────────────────────────────────────────────────────────────
 window.downloadDashboard = function(fmt) {

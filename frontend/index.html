@@ -15,7 +15,9 @@
     <a href="/" data-page="dashboard" class="active">Dashboard</a>
     <a href="/calculator.html" data-page="calculator">Calculator</a>
     <a href="/upload.html" data-page="upload">Upload Data</a>
+    <a href="/regional.html" data-page="regional">Regional</a>
     <a href="/executive-review.html" data-page="review">Executive Review</a>
+    <a href="/admin.html" data-page="admin">Admin</a>
   </div>
 </nav>
 
@@ -52,7 +54,36 @@
       <option value="logistics">Logistics</option>
       <option value="primary_pkg_md">Primary pkg &amp; MD</option>
       <option value="api_chemicals">API &amp; chemicals</option>
+      <option value="regional">Regional</option>
     </select>
+    <!-- Regional sub-filters — shown only when segment=regional -->
+    <div id="regional-subfilters" class="regional-subfilters" style="display:none">
+      <label>Type</label>
+      <select id="f-reg-type">
+        <option value="">All types</option>
+        <option value="ppi">PPI</option>
+        <option value="cpi">CPI</option>
+        <option value="lci">LCI</option>
+        <option value="energy">Energy</option>
+      </select>
+      <label>Country</label>
+      <select id="f-reg-country">
+        <option value="">All countries</option>
+        <option value="DE">Germany</option>
+        <option value="FR">France</option>
+        <option value="IT">Italy</option>
+        <option value="ES">Spain</option>
+        <option value="NL">Netherlands</option>
+        <option value="BE">Belgium</option>
+        <option value="SE">Sweden</option>
+        <option value="PL">Poland</option>
+        <option value="AT">Austria</option>
+        <option value="PT">Portugal</option>
+        <option value="CZ">Czechia</option>
+        <option value="CH">Switzerland</option>
+        <option value="IL">Israel</option>
+      </select>
+    </div>
     <label>Source</label>
     <select id="f-source">
       <option value="">All</option>

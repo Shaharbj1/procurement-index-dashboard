@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin — Procurement Index Dashboard</title>
+  <link rel="stylesheet" href="/css/style.css"/>
+</head>
+<body>
+
+<nav class="nav">
+  <span class="nav-brand">📊 ProcureIndex</span>
+  <div class="nav-links">
+    <a href="/" data-page="dashboard">Dashboard</a>
+    <a href="/calculator.html" data-page="calculator">Calculator</a>
+    <a href="/upload.html" data-page="upload">Upload Data</a>
+    <a href="/regional.html" data-page="regional">Regional</a>
+    <a href="/executive-review.html" data-page="review">Executive Review</a>
+    <a href="/admin.html" data-page="admin" class="active">Admin</a>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="page-title">Admin — Scheduler &amp; Fetch Log</div>
+
+  <!-- Scheduler Status -->
+  <div class="card admin-section">
+    <div class="admin-section-title">Scheduler Status</div>
+    <div style="display:flex;gap:32px;flex-wrap:wrap;align-items:center">
+      <div>
+        <div style="font-size:.8rem;color:var(--text-muted);font-weight:600;margin-bottom:4px">OVERALL STATUS</div>
+        <span id="overall-status" class="status-badge status-never">Loading…</span>
+      </div>
+      <div>
+        <div style="font-size:.8rem;color:var(--text-muted);font-weight:600;margin-bottom:4px">NEXT RUN (UTC)</div>
+        <div id="next-run" style="font-weight:600;color:var(--navy)">—</div>
+      </div>
+      <div>
+        <div style="font-size:.8rem;color:var(--text-muted);font-weight:600;margin-bottom:4px">LAST RUN</div>
+        <div id="last-run" style="font-weight:600;color:var(--navy)">—</div>
+      </div>
+      <div style="margin-left:auto">
+        <button class="btn btn-primary" id="btn-trigger" onclick="triggerRefresh()">
+          ▶ Trigger Now
+        </button>
+      </div>
+    </div>
+    <div id="trigger-msg" style="margin-top:12px;font-size:.88rem;color:var(--positive);display:none"></div>
+  </div>
+
+  <!-- Paid Indices Reminder -->
+  <div class="info-banner admin-section">
+    <strong>Paid / Manual indices — not auto-fetched.</strong>
+    These 8 indices must be uploaded manually via the Upload page:<br/>
+    <span id="paid-list" style="font-family:monospace;font-size:.85rem"></span>
+    <br/><a href="/upload.html" class="btn btn-secondary btn-sm" style="margin-top:8px;display:inline-flex">
+      → Go to Upload page
+    </a>
+  </div>
+
+  <!-- API Keys Status -->
+  <div class="card admin-section">
+    <div class="admin-section-title">API Keys Status</div>
+    <div id="env-status" style="display:flex;gap:20px;flex-wrap:wrap"></div>
+  </div>
+
+  <!-- Fetch Log -->
+  <div class="card admin-section">
+    <div class="admin-section-title">Fetch Log (last 50 entries)</div>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:.84rem">
+        <thead>
+          <tr>
+            <th style="padding:8px 12px;background:var(--navy);color:#fff;text-align:left;white-space:nowrap">Date / Time (UTC)</th>
+            <th style="padding:8px 12px;background:var(--navy);color:#fff;text-align:left">Index</th>
+            <th style="padding:8px 12px;background:var(--navy);color:#fff;text-align:center">Status</th>
+            <th style="padding:8px 12px;background:var(--navy);color:#fff;text-align:right">Added</th>
+            <th style="padding:8px 12px;background:var(--navy);color:#fff;text-align:right">Updated</th>
+            <th style="padding:8px 12px;background:var(--navy);color:#fff;text-align:right">Duration ms</th>
+            <th style="padding:8px 12px;background:var(--navy);color:#fff;text-align:left">Error</th>
+          </tr>
+        </thead>
+        <tbody id="log-tbody">
+          <tr><td colspan="7" style="padding:24px;text-align:center;color:var(--text-muted)">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="/js/admin.js"></script>
+</body>
+</html>

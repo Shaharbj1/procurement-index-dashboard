@@ -15,7 +15,9 @@
     <a href="/" data-page="dashboard">Dashboard</a>
     <a href="/calculator.html" data-page="calculator" class="active">Calculator</a>
     <a href="/upload.html" data-page="upload">Upload Data</a>
+    <a href="/regional.html" data-page="regional">Regional</a>
     <a href="/executive-review.html" data-page="review">Executive Review</a>
+    <a href="/admin.html" data-page="admin">Admin</a>
   </div>
 </nav>
 
@@ -30,13 +32,18 @@
           <option value="">— Select index —</option>
         </select>
       </div>
-      <div class="form-group">
-        <label for="calc-start">Start Period (YYYY-MM)</label>
-        <input type="month" id="calc-start" placeholder="2022-01"/>
+      <!-- Period pickers — swapped by JS based on index period_type -->
+      <div class="form-group" id="period-start-group">
+        <label id="calc-start-label">Start Period (YYYY-MM)</label>
+        <div id="calc-start-wrap">
+          <input type="month" id="calc-start" placeholder="2022-01" style="width:100%"/>
+        </div>
       </div>
-      <div class="form-group">
-        <label for="calc-end">End Period (YYYY-MM)</label>
-        <input type="month" id="calc-end" placeholder="2024-12"/>
+      <div class="form-group" id="period-end-group">
+        <label id="calc-end-label">End Period (YYYY-MM)</label>
+        <div id="calc-end-wrap">
+          <input type="month" id="calc-end" placeholder="2024-12" style="width:100%"/>
+        </div>
       </div>
       <div class="form-group">
         <label>&nbsp;</label>

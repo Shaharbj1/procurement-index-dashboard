@@ -583,3 +583,86 @@ tbody tr:nth-child(even).selected { background: #D6E8F7; }
   display: inline-block;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Source link icon ────────────────────────────────────────────────────── */
+.index-name-cell { display: inline-flex; align-items: center; gap: 4px; }
+.source-link {
+  color: var(--text-muted);
+  margin-left: 3px;
+  vertical-align: middle;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  opacity: 0.6;
+  transition: opacity .15s, color .15s;
+}
+.source-link:hover { color: var(--sky); opacity: 1; text-decoration: none; }
+
+/* ── Info banner (upload page) ───────────────────────────────────────────── */
+:root {
+  --color-background-info: #E3F2FD;
+  --color-border-info: #1565C0;
+  --color-text-tertiary: var(--text-muted);
+  --color-text-secondary: var(--text);
+}
+.info-banner {
+  background: var(--color-background-info);
+  border-left: 4px solid var(--color-border-info);
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  color: var(--navy);
+  line-height: 1.5;
+}
+.info-banner a { color: var(--color-border-info); font-weight: 500; }
+
+/* ── Regional sub-filters ────────────────────────────────────────────────── */
+.regional-subfilters { display: none; align-items: center; gap: 12px; flex-wrap: wrap; }
+.regional-subfilters.visible { display: flex; }
+
+/* ── Regional badge ──────────────────────────────────────────────────────── */
+.badge-regional { background: #7B1FA2; }
+
+/* ── Admin page ──────────────────────────────────────────────────────────── */
+.admin-section { margin-bottom: 28px; }
+.admin-section-title {
+  font-size: 1rem; font-weight: 600; color: var(--navy);
+  margin-bottom: 12px; padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.status-badge {
+  display: inline-block; padding: 3px 10px;
+  border-radius: 20px; font-size: .76rem; font-weight: 600; color: #fff;
+}
+.status-ok      { background: var(--positive); }
+.status-error   { background: var(--negative); }
+.status-skipped { background: var(--text-muted); }
+.status-never   { background: #90A4AE; }
+.env-key-status { display: flex; gap: 8px; align-items: center; font-size: .88rem; }
+.env-set   { color: var(--positive); font-weight: 600; }
+.env-unset { color: var(--negative); }
+
+/* ── Regional page ───────────────────────────────────────────────────────── */
+.regional-toggle-bar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+.toggle-group { display: flex; gap: 4px; flex-wrap: wrap; }
+.toggle-btn {
+  padding: 7px 18px; border-radius: 20px;
+  border: 1px solid var(--border); background: var(--bg);
+  font-family: var(--font); font-size: .88rem; font-weight: 500;
+  cursor: pointer; color: var(--text); transition: background .15s, color .15s;
+}
+.toggle-btn.active { background: #7B1FA2; color: #fff; border-color: #7B1FA2; }
+.toggle-btn:hover:not(.active) { background: var(--bg-alt); }
+.time-range-bar { display: flex; gap: 6px; align-items: center; margin-bottom: 16px; }
+.time-range-bar button {
+  padding: 5px 12px; border-radius: 4px;
+  border: 1px solid var(--border); background: var(--bg);
+  font-family: var(--font); font-size: .82rem; cursor: pointer; color: var(--text);
+}
+.time-range-bar button.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+.regional-chart-wrap { position: relative; height: 320px; margin-bottom: 20px; }
+.regional-table-wrap { overflow-x: auto; margin-bottom: 20px; }
+.sortable-header { cursor: pointer; user-select: none; }
+.sortable-header:hover { background: #2a4a6c; }
+.sortable-header::after { content: ' ⇅'; font-size: .7em; opacity: .6; }
