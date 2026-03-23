@@ -27,7 +27,7 @@ SEED_INDICES = [
     {"id": "emn_aki_white",    "name": "AKI White Collar — Sweden",      "segment": "emn",                 "source": "eurostat",    "category": "labor",     "unit": "index",     "base_year": "2015=100", "paid_source": 0, "source_url": "https://www.scb.se/en/finding-statistics/statistics-by-subject-area/labour-market/wages-salaries-and-labour-costs/", "period_type": "monthly", "country_iso": "SE"},
     {"id": "emn_ppi_sweden",   "name": "PPI — Sweden",                   "segment": "emn",                 "source": "eurostat",    "category": "general",   "unit": "index",     "base_year": "2015=100", "paid_source": 0, "source_url": "https://www.scb.se/en/finding-statistics/statistics-by-subject-area/trade-in-goods-and-services/price-statistics/producer-price-index-ppi/", "period_type": "monthly", "country_iso": "SE"},
     {"id": "emn_cpi_italy",    "name": "CPI — Italy",                    "segment": "emn",                 "source": "eurostat",    "category": "general",   "unit": "index",     "base_year": "2015=100", "paid_source": 0, "source_url": "https://ec.europa.eu/eurostat/databrowser/view/prc_hicp_midx",    "period_type": "monthly", "country_iso": "IT"},
-    {"id": "emn_labor_de",     "name": "Labor Cost Index — Germany",     "segment": "emn",                 "source": "eurostat",    "category": "labor",     "unit": "index",     "base_year": "2015=100", "paid_source": 0, "source_url": "https://www-genesis.destatis.de/genesis/online",                    "period_type": "monthly", "country_iso": "DE"},
+    {"id": "emn_labor_de",     "name": "Labor Cost Index — Germany",     "segment": "emn",                 "source": "eurostat",    "category": "labor",     "unit": "index",     "base_year": "2016=100", "paid_source": 0, "source_url": "https://ec.europa.eu/eurostat/databrowser/view/lc_lci_lev",       "period_type": "quarterly", "country_iso": "DE"},
     {"id": "emn_ppi_de",       "name": "PPI — Germany",                  "segment": "emn",                 "source": "eurostat",    "category": "general",   "unit": "index",     "base_year": "2015=100", "paid_source": 0, "source_url": "https://www-genesis.destatis.de/genesis/online",                    "period_type": "monthly", "country_iso": "DE"},
     # Logistics (3)
     {"id": "log_cpi_general",  "name": "Consumer Price Index — General", "segment": "logistics",           "source": "manual",      "category": "general",   "unit": "index",     "base_year": "2015=100", "paid_source": 0, "source_url": "https://data.oecd.org/price/inflation-cpi.htm",                     "period_type": "monthly", "country_iso": None},
@@ -237,6 +237,12 @@ def init_db():
 
         # Seed 52 regional indices (idempotent — uses INSERT OR IGNORE)
         _seed_regional(conn)
+
+        # Migrate emn_labor_de to quarterly (Eurostat LCI source)
+        conn.execute(
+            "UPDATE indices SET period_type='quarterly', source_url=? WHERE id='emn_labor_de'",
+            ("https://ec.europa.eu/eurostat/databrowser/view/lc_lci_lev",),
+        )
 
 
 def _seed_original(conn: sqlite3.Connection):

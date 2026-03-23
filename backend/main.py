@@ -14,7 +14,7 @@ from fastapi.responses import FileResponse
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
-from backend.database import init_db
+from backend.database import init_db, get_connection
 from backend.routers import indices, timeseries, calculator, upload, export, review
 
 logger = logging.getLogger(__name__)
@@ -44,6 +44,22 @@ async def lifespan(app: FastAPI):
         "Scheduler started — auto-fetch on day=%d hour=%d UTC",
         fetch_day, fetch_hour,
     )
+
+    # Auto-fetch on first deploy if no data exists
+    try:
+        with get_connection() as _conn:
+            _record_count = _conn.execute("SELECT COUNT(*) FROM index_values").fetchone()[0]
+        if _record_count == 0:
+            logger.info("No index data found — triggering initial fetch in 15 seconds")
+            import asyncio as _asyncio
+            async def _initial_fetch():
+                await _asyncio.sleep(15)
+                await run_all_fetchers()
+                logger.info("Initial auto-fetch complete")
+            _asyncio.create_task(_initial_fetch())
+    except Exception as _e:
+        logger.warning("Startup auto-fetch check failed: %s", _e)
+
     yield
     scheduler.shutdown()
     logger.info("Scheduler shut down")
@@ -77,7 +93,6 @@ app.include_router(regional_router, prefix="/api/regional", tags=["Regional"])
 
 @app.get("/api/health", tags=["Health"])
 def health():
-    from backend.database import get_connection
     with get_connection() as conn:
         count = conn.execute("SELECT COUNT(*) FROM index_values").fetchone()[0]
     return {"status": "ok", "db_records": count}

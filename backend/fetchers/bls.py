@@ -32,14 +32,13 @@ BLS_SERIES = {
 VALID_BLS_SERIES = {k: v for k, v in BLS_SERIES.items()
                     if v not in ("prim_ppi_eu",)}  # prim_ppi_eu comes from Eurostat
 
-# Correct mapping with real BLS series IDs
+# Confirmed BLS series IDs (verified format)
 REAL_BLS_SERIES = {
-    "WPS00000000":     "prim_ppi_us_bls",
-    "EIUIR000000000000000": "prim_ppi_int_bls",
-    "CUUR0000SA0":     "prim_cpi_us",
-    "PCU325412325412": "api_ppi_pharma",
-    "PCU3261  3261  ": "prim_ppi_aptar",
-    "PCU3261  3261  1": "prim_ppi_union",
+    "WPS00000000":     "prim_ppi_us_bls",    # PPI All Commodities (WPS)
+    "CUUR0000SA0":     "prim_cpi_us",         # CPI All Urban Consumers
+    "PCU325412325412": "api_ppi_pharma",      # PPI Pharmaceutical Manufacturing
+    "PCU3261--3261--": "prim_ppi_aptar",      # PPI Plastics product mfg
+    "PCU3261--3261--1":"prim_ppi_union",       # PPI Plastics (subtotal)
 }
 
 

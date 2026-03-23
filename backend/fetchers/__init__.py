@@ -28,6 +28,7 @@ async def run_all_fetchers():
         (eurostat.fetch_ppi_eu,              "Eurostat PPI EU"),
         (eurostat.fetch_lci_eu,              "Eurostat LCI EU"),
         (eurostat.fetch_hicp_eu,             "Eurostat HICP EU"),
+        (eurostat.fetch_emn_de,              "Eurostat EMN Germany"),
         (eurostat.fetch_regional_ppi,        "Eurostat Regional PPI"),
         (eurostat.fetch_regional_cpi,        "Eurostat Regional CPI"),
         (eurostat.fetch_regional_lci,        "Eurostat Regional LCI"),

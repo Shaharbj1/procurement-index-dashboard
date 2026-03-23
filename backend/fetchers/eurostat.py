@@ -18,7 +18,7 @@ _BACKOFF = [5, 25, 125]
 
 EU_GEOS = "DE+FR+IT+ES+NL+BE+SE+PL+AT+PT+CZ"
 
-# Map Eurostat geo code → our country_iso for reg_ IDs
+# Map Eurostat geo code → our country_iso (lower) for reg_ IDs
 _GEO_TO_ISO = {
     "DE": "de", "FR": "fr", "IT": "it", "ES": "es", "NL": "nl",
     "BE": "be", "SE": "se", "PL": "pl", "AT": "at", "PT": "pt", "CZ": "cz",
@@ -28,7 +28,7 @@ _GEO_TO_ISO = {
 async def _get_json(url: str, params: dict) -> Optional[dict]:
     """GET with retry + exponential backoff. Returns None on failure."""
     import asyncio
-    async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
+    async with httpx.AsyncClient(timeout=_TIMEOUT, follow_redirects=True) as client:
         for attempt, delay in enumerate(_BACKOFF):
             try:
                 r = await client.get(url, params=params)
@@ -43,54 +43,87 @@ async def _get_json(url: str, params: dict) -> Optional[dict]:
     return None
 
 
-def _parse_sdmx_single(data: dict, index_id: str, period_prefix: str = "") -> List[Dict]:
-    """Parse Eurostat SDMX-JSON for a single-geo response."""
+def _pos_to_label(category: dict) -> dict:
+    """
+    Build {integer_position: label_string} from SDMX category.index dict
+    which is {label_string: integer_position}.
+    """
+    return {v: k for k, v in category.get("index", {}).items()}
+
+
+def _parse_sdmx_single(data: dict, index_id: str) -> List[Dict]:
+    """
+    Parse Eurostat SDMX-JSON for a single-geo / single-filter response
+    where all non-time dimensions have size 1.
+    Uses position-based lookup to avoid dict-key-order assumptions.
+    """
     results = []
     try:
-        dim = data["dimension"]
-        time_dim = dim.get("time", {})
-        values_dim = data.get("value", {})
-        time_labels = list(time_dim.get("category", {}).get("index", {}).keys())
+        dim        = data.get("dimension", {})
+        time_cat   = dim.get("time", {}).get("category", {})
+        pos_to_period = _pos_to_label(time_cat)   # {0: "2024-11", 1: "2024-10", ...}
 
-        for str_idx, value in values_dim.items():
-            t_idx = int(str_idx)
-            if t_idx < len(time_labels):
-                period_raw = time_labels[t_idx]
-                period = _normalize_period(period_raw, period_prefix)
-                if period and value is not None:
+        for str_idx, value in data.get("value", {}).items():
+            flat = int(str_idx)
+            period_raw = pos_to_period.get(flat)
+            if period_raw and value is not None:
+                period = _normalize_period(period_raw)
+                if period:
                     results.append({"index_id": index_id, "period": period, "value": float(value)})
     except Exception as exc:
         logger.error("_parse_sdmx_single error for %s: %s", index_id, exc)
     return results
 
 
-def _parse_sdmx_multi_geo(data: dict, id_prefix: str, type_suffix: str) -> List[Dict]:
+def _parse_sdmx_multi_geo(data: dict, type_suffix: str) -> List[Dict]:
     """
     Parse Eurostat SDMX-JSON for multi-geo response.
-    Returns rows with index_id = f'reg_{type_suffix}_{geo_lower}'.
+    Flat index = geo_position * n_time + time_position.
+    Returns rows with index_id = 'reg_{type_suffix}_{geo_lower}'.
     """
     results = []
     try:
-        dim = data["dimension"]
-        geo_dim  = dim.get("geo", {})
-        time_dim = dim.get("time", {})
-        geo_labels  = list(geo_dim.get("category", {}).get("index", {}).keys())   # e.g. ['DE','FR',...]
-        time_labels = list(time_dim.get("category", {}).get("index", {}).keys())  # e.g. ['2010-01',...]
-        n_geo  = len(geo_labels)
-        n_time = len(time_labels)
+        dim      = data.get("dimension", {})
+        sizes    = data.get("size", [])
+        dim_ids  = data.get("id", [])
+
+        geo_pos  = next((i for i, d in enumerate(dim_ids) if d.lower() == "geo"),  -1)
+        time_pos = next((i for i, d in enumerate(dim_ids) if d.lower() == "time"), -1)
+        if geo_pos == -1 or time_pos == -1:
+            logger.error("_parse_sdmx_multi_geo: cannot find geo/time in id list: %s", dim_ids)
+            return []
+
+        n_geo  = sizes[geo_pos]  if sizes and geo_pos  < len(sizes) else 1
+        n_time = sizes[time_pos] if sizes and time_pos < len(sizes) else 1
+
+        geo_cat    = dim.get("geo",  {}).get("category", {})
+        time_cat   = dim.get("time", {}).get("category", {})
+        pos_to_geo  = _pos_to_label(geo_cat)    # {0: "DE", 1: "FR", ...}
+        pos_to_time = _pos_to_label(time_cat)   # {0: "2024-11", ...}
+
+        # Stride: how many elements per unit of the geo dimension
+        # For dims ordered [..., geo, time], stride_geo = n_time
+        geo_stride  = 1
+        for s in sizes[geo_pos + 1:]:
+            geo_stride *= s
+        time_stride = 1
+        for s in sizes[time_pos + 1:]:
+            time_stride *= s
 
         for str_idx, value in data.get("value", {}).items():
-            flat = int(str_idx)
-            geo_i  = flat // n_time
-            time_i = flat  % n_time
-            if geo_i >= n_geo or time_i >= n_time or value is None:
+            if value is None:
                 continue
-            geo_code   = geo_labels[geo_i]
-            period_raw = time_labels[time_i]
-            iso_lower  = _GEO_TO_ISO.get(geo_code)
-            if not iso_lower:
+            flat    = int(str_idx)
+            geo_i   = (flat // geo_stride)  % n_geo
+            time_i  = (flat // time_stride) % n_time
+
+            geo_code   = pos_to_geo.get(geo_i)
+            period_raw = pos_to_time.get(time_i)
+            iso_lower  = _GEO_TO_ISO.get(geo_code) if geo_code else None
+
+            if not iso_lower or not period_raw:
                 continue
-            period = _normalize_period(period_raw, type_suffix)
+            period = _normalize_period(period_raw)
             if period:
                 results.append({
                     "index_id": f"reg_{type_suffix}_{iso_lower}",
@@ -102,32 +135,27 @@ def _parse_sdmx_multi_geo(data: dict, id_prefix: str, type_suffix: str) -> List[
     return results
 
 
-def _normalize_period(raw: str, hint: str = "") -> Optional[str]:
+def _normalize_period(raw: str) -> Optional[str]:
     """Convert Eurostat period notation to our standard format."""
     raw = raw.strip()
-    # YYYY-MM → keep as is
     if re.match(r"\d{4}-\d{2}$", raw):
         return raw
-    # YYYY → monthly not applicable; skip unless quarterly
-    # YYYY-QX or YYYY-QN
     m = re.match(r"(\d{4})-Q(\d)$", raw)
     if m:
         return f"{m.group(1)}-Q{m.group(2)}"
-    # Eurostat semi-annual: YYYY-S1 / YYYY-S2
     m = re.match(r"(\d{4})-S(\d)$", raw)
     if m:
         return f"{m.group(1)}-S{m.group(2)}"
-    # Eurostat energy uses YYYY-SXX notation (e.g. 2023-S1)
     return None
 
 
 # ── Single-series fetchers ────────────────────────────────────────────────────
 
 async def fetch_ppi_eu() -> List[Dict]:
-    """prim_ppi_eu — EU PPI manufacturing monthly."""
+    """prim_ppi_eu — EU PPI total industry monthly."""
     data = await _get_json(
         f"{_BASE}/sts_inppd_m",
-        {"geo": "EU27_2020", "nace_r2": "MIG_ING", "s_adj": "NSA", "unit": "I15",
+        {"geo": "EU27_2020", "nace_r2": "B-E36", "s_adj": "NSA", "unit": "I15",
          "format": "JSON", "lang": "EN"},
     )
     if not data:
@@ -148,7 +176,7 @@ async def fetch_lci_eu() -> List[Dict]:
 
 
 async def fetch_hicp_eu() -> List[Dict]:
-    """prim_hicp_medical + emn_cpi_italy + prim_cpi_g20 (approximated via Eurostat HICP)."""
+    """prim_hicp_medical + emn_cpi_italy — Eurostat HICP."""
     results = []
     pairs = [
         ("EU27_2020", "prim_hicp_medical"),
@@ -164,18 +192,46 @@ async def fetch_hicp_eu() -> List[Dict]:
     return results
 
 
+async def fetch_emn_de() -> List[Dict]:
+    """
+    emn_ppi_de — Germany PPI monthly (Eurostat sts_inppd_m).
+    emn_labor_de — Germany Labour Cost Index quarterly (Eurostat lc_lci_lev).
+    """
+    results = []
+
+    # emn_ppi_de — monthly
+    data_ppi = await _get_json(
+        f"{_BASE}/sts_inppd_m",
+        {"geo": "DE", "nace_r2": "B-E36", "s_adj": "NSA", "unit": "I15",
+         "format": "JSON", "lang": "EN"},
+    )
+    if data_ppi:
+        results.extend(_parse_sdmx_single(data_ppi, "emn_ppi_de"))
+
+    # emn_labor_de — quarterly (Eurostat LCI is quarterly)
+    data_lci = await _get_json(
+        f"{_BASE}/lc_lci_lev",
+        {"geo": "DE", "indic_lc": "LCI", "nace_r2": "B-N", "s_adj": "NSA",
+         "unit": "I16", "format": "JSON", "lang": "EN"},
+    )
+    if data_lci:
+        results.extend(_parse_sdmx_single(data_lci, "emn_labor_de"))
+
+    return results
+
+
 # ── Regional multi-country fetchers ───────────────────────────────────────────
 
 async def fetch_regional_ppi() -> List[Dict]:
     """reg_ppi_{de|fr|it|es|nl|be|se|pl|at|pt|cz} — Eurostat PPI monthly."""
     data = await _get_json(
         f"{_BASE}/sts_inppd_m",
-        {"geo": EU_GEOS, "nace_r2": "MIG_ING", "s_adj": "NSA", "unit": "I15",
+        {"geo": EU_GEOS, "nace_r2": "B-E36", "s_adj": "NSA", "unit": "I15",
          "format": "JSON", "lang": "EN"},
     )
     if not data:
         return []
-    return _parse_sdmx_multi_geo(data, "reg", "ppi")
+    return _parse_sdmx_multi_geo(data, "ppi")
 
 
 async def fetch_regional_cpi() -> List[Dict]:
@@ -187,7 +243,7 @@ async def fetch_regional_cpi() -> List[Dict]:
     )
     if not data:
         return []
-    return _parse_sdmx_multi_geo(data, "reg", "cpi")
+    return _parse_sdmx_multi_geo(data, "cpi")
 
 
 async def fetch_regional_lci() -> List[Dict]:
@@ -199,7 +255,7 @@ async def fetch_regional_lci() -> List[Dict]:
     )
     if not data:
         return []
-    return _parse_sdmx_multi_geo(data, "reg", "lci")
+    return _parse_sdmx_multi_geo(data, "lci")
 
 
 async def fetch_regional_energy() -> List[Dict]:
@@ -211,4 +267,4 @@ async def fetch_regional_energy() -> List[Dict]:
     )
     if not data:
         return []
-    return _parse_sdmx_multi_geo(data, "reg", "energy")
+    return _parse_sdmx_multi_geo(data, "energy")

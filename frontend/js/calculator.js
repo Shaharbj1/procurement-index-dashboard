@@ -273,7 +273,10 @@ function escHtml(str) {
 // ── Helpers ────────────────────────────────────────────────────────────────
 function showError(msg) {
   const el = document.getElementById('calc-error');
-  el.textContent = '⚠ ' + msg;
+  const hint = msg.includes('No data for period')
+    ? ' — Free indices are auto-fetched monthly. <a href="/admin.html">Trigger a fetch now →</a>'
+    : '';
+  el.innerHTML = '⚠ ' + escHtml(msg) + hint;
   el.classList.add('visible');
 }
 function showWarn(msg) {

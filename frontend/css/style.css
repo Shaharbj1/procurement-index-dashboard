@@ -385,6 +385,7 @@ tbody tr:nth-child(even).selected { background: #D6E8F7; }
   display: none;
 }
 .error-msg.visible { display: block; }
+.error-msg a { color: var(--negative); font-weight: 600; }
 .warn-msg {
   color: #856404;
   background: #FFF3CD;
