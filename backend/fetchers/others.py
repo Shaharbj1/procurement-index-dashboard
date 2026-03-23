@@ -215,10 +215,12 @@ async def fetch_istat_italy() -> List[Dict]:
 # ── ONS UK ────────────────────────────────────────────────────────────────────
 
 async def fetch_ons_uk() -> List[Dict]:
-    """emn_cpi_uk — UK ONS CPI All Items (D7G7, MM23 dataset, 2015=100)."""
+    """emn_cpi_uk — UK ONS CPI All Items Index (D7BT, MM23, 2015=100).
+    D7BT = CPI All Items Index (level, 2015=100).
+    D7G7 = CPI 12-month rate (% change) — NOT used here."""
     # ONS Reader API: /v1/data?uri=<content-path>
     url = "https://api.ons.gov.uk/v1/data"
-    r = await _get(url, params={"uri": "/economy/inflationandpriceindices/timeseries/d7g7/mm23"})
+    r = await _get(url, params={"uri": "/economy/inflationandpriceindices/timeseries/d7bt/mm23"})
     if not r:
         return []
     try:
