@@ -38,21 +38,33 @@ async def _get(url: str, params: dict = None, headers: dict = None) -> Optional[
 
 async def fetch_scb_sweden() -> List[Dict]:
     """
-    emn_aki_blue, emn_aki_white, emn_ppi_sweden — SCB PxWeb JSON-stat API.
+    emn_aki_blue, emn_aki_white — SCB PxWeb AKI (labour cost index).
+    emn_ppi_sweden is now fetched via Eurostat; AKI only here.
     """
     results: List[Dict] = []
+    # SCB AKI tables — filter to last 60 time periods to avoid payload limit
     tasks = [
-        ("https://api.scb.se/OV0104/v1/doris/en/ssd/AM/AM0110/AM0110A/AKIKvMan",
-         {"query": [], "response": {"format": "JSON"}},
-         "emn_aki_blue"),
-        ("https://api.scb.se/OV0104/v1/doris/en/ssd/AM/AM0110/AM0110A/AKIKvTjm",
-         {"query": [], "response": {"format": "JSON"}},
-         "emn_aki_white"),
-        ("https://api.scb.se/OV0104/v1/doris/en/ssd/PR/PR0301/PR0301A/PPIENSMFKN2015",
-         {"query": [], "response": {"format": "JSON"}},
-         "emn_ppi_sweden"),
+        (
+            "https://api.scb.se/OV0104/v1/doris/en/ssd/AM/AM0110/AM0110A/AKIKvMan",
+            {
+                "query": [
+                    {"code": "Tid", "selection": {"filter": "top", "values": ["60"]}}
+                ],
+                "response": {"format": "JSON"},
+            },
+            "emn_aki_blue",
+        ),
+        (
+            "https://api.scb.se/OV0104/v1/doris/en/ssd/AM/AM0110/AM0110A/AKIKvTjm",
+            {
+                "query": [
+                    {"code": "Tid", "selection": {"filter": "top", "values": ["60"]}}
+                ],
+                "response": {"format": "JSON"},
+            },
+            "emn_aki_white",
+        ),
     ]
-    import asyncio
     async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
         for url, payload, idx_id in tasks:
             try:
@@ -60,6 +72,7 @@ async def fetch_scb_sweden() -> List[Dict]:
                 r.raise_for_status()
                 data = r.json()
                 rows = _parse_scb(data, idx_id)
+                logger.info("SCB %s: parsed %d rows", idx_id, len(rows))
                 results.extend(rows)
             except Exception as exc:
                 logger.error("SCB fetch for %s failed: %s", idx_id, exc)
@@ -196,21 +209,35 @@ async def fetch_istat_italy() -> List[Dict]:
 # ── ONS UK ────────────────────────────────────────────────────────────────────
 
 async def fetch_ons_uk() -> List[Dict]:
-    """emn_cpi_uk — UK ONS API."""
-    url = "https://api.ons.gov.uk/v1/datasets/cpih01/timeseries/l55o/data"
+    """emn_cpi_uk — UK ONS CPI All Items (D7G7, MM23 dataset)."""
+    # D7G7 = CPI All Items Index (2015=100) from MM23 dataset
+    url = "https://api.ons.gov.uk/v1/timeseries/D7G7/dataset/MM23/data"
     r = await _get(url)
     if not r:
         return []
     try:
         data = r.json()
         results = []
+        _month_map = {
+            "jan":"01","feb":"02","mar":"03","apr":"04","may":"05","jun":"06",
+            "jul":"07","aug":"08","sep":"09","oct":"10","nov":"11","dec":"12",
+        }
         for m in data.get("months", []):
             try:
-                period = f"{m['year']}-{m['month'].zfill(2)}"
-                results.append({"index_id": "emn_cpi_uk",
-                                "period": period, "value": float(m["value"])})
+                year  = str(m.get("year", "")).strip()
+                month = str(m.get("month", "")).strip()
+                # ONS month can be "01" (numeric) or "Jan" (abbreviated)
+                if month.isdigit():
+                    mo = month.zfill(2)
+                else:
+                    mo = _month_map.get(month[:3].lower(), "")
+                if year and mo:
+                    results.append({"index_id": "emn_cpi_uk",
+                                    "period": f"{year}-{mo}",
+                                    "value": float(m["value"])})
             except Exception:
                 pass
+        logger.info("ONS UK: parsed %d rows", len(results))
         return results
     except Exception as exc:
         logger.error("ONS parse error: %s", exc)
@@ -255,26 +282,70 @@ async def fetch_fred() -> List[Dict]:
 # ── OECD API ──────────────────────────────────────────────────────────────────
 
 async def fetch_oecd() -> List[Dict]:
-    """prim_cpi_us, prim_cpi_g20, log_cpi_general — OECD Data API."""
+    """
+    prim_cpi_g20, log_cpi_general — OECD Data Explorer API v2.
+    Uses the new sdmx.oecd.org endpoint (stats.oecd.org was retired).
+    """
     results = []
+    # OECD SDMX v2 format: CPI index 2015=100, monthly
     tasks = [
-        ("https://stats.oecd.org/SDMX-JSON/data/PRICES_CPI/USA.CPALTT01.GY.M/all",
-         "prim_cpi_us"),
-        ("https://stats.oecd.org/SDMX-JSON/data/PRICES_CPI/G-20.CPALTT01.GY.M/all",
-         "prim_cpi_g20"),
-        ("https://stats.oecd.org/SDMX-JSON/data/PRICES_CPI/OECD.CPALTT01.GY.M/all",
-         "log_cpi_general"),
+        (
+            "https://sdmx.oecd.org/v2/data/OECD.SDD.STES,DP_LIVE,/"
+            "G20.CPI.TOT.IDX2015.M/all"
+            "?startPeriod=2015-01&format=jsondata&dimensionAtObservation=AllDimensions",
+            "prim_cpi_g20",
+        ),
+        (
+            "https://sdmx.oecd.org/v2/data/OECD.SDD.STES,DP_LIVE,/"
+            "OECD.CPI.TOT.IDX2015.M/all"
+            "?startPeriod=2015-01&format=jsondata&dimensionAtObservation=AllDimensions",
+            "log_cpi_general",
+        ),
     ]
-    async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
+    async with httpx.AsyncClient(timeout=60, follow_redirects=True) as client:
         for url, idx_id in tasks:
             try:
-                r = await client.get(url, headers={"Accept": "application/json"})
+                r = await client.get(url, headers={"Accept": "application/vnd.sdmx.data+json;version=2"})
                 r.raise_for_status()
                 data = r.json()
-                rows = _parse_oecd(data, idx_id)
+                rows = _parse_oecd_v2(data, idx_id)
+                logger.info("OECD %s: parsed %d rows", idx_id, len(rows))
                 results.extend(rows)
             except Exception as exc:
                 logger.error("OECD fetch for %s failed: %s", idx_id, exc)
+    return results
+
+
+def _parse_oecd_v2(data: dict, idx_id: str) -> List[Dict]:
+    """Parse OECD SDMX-JSON v2 (sdmx.oecd.org) format."""
+    results = []
+    try:
+        datasets = data.get("data", {}).get("dataSets", data.get("dataSets", []))
+        structure = data.get("data", {}).get("structures", data.get("structures", []))
+        if not datasets or not structure:
+            return []
+        obs = datasets[0].get("observations", {})
+        dims = structure[0].get("dimensions", {}).get("observation", [])
+        # Find the TIME_PERIOD dimension
+        time_dim = next((d for d in dims if d.get("id") in ("TIME_PERIOD", "time")), None)
+        if not time_dim:
+            return []
+        time_values = {i: v.get("id","") for i, v in enumerate(time_dim.get("values", []))}
+        for key, vals in obs.items():
+            try:
+                indices = [int(x) for x in key.split(":")]
+                time_pos = dims.index(time_dim)
+                t_idx = indices[time_pos]
+                period_raw = time_values.get(t_idx, "")
+                m = re.match(r"(\d{4})-(\d{2})", period_raw)
+                if m and vals and vals[0] is not None:
+                    results.append({"index_id": idx_id,
+                                    "period": f"{m.group(1)}-{m.group(2)}",
+                                    "value": float(vals[0])})
+            except Exception:
+                pass
+    except Exception as exc:
+        logger.error("_parse_oecd_v2 error for %s: %s", idx_id, exc)
     return results
 
 

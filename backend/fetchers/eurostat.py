@@ -268,3 +268,25 @@ async def fetch_regional_energy() -> List[Dict]:
     if not data:
         return []
     return _parse_sdmx_multi_geo(data, "energy")
+
+
+async def fetch_extra_singles() -> List[Dict]:
+    """
+    Fetches indices not covered by other calls:
+    - api_eurostat  : EU PPI (same as prim_ppi_eu but different index_id)
+    - emn_ppi_sweden: Sweden PPI monthly
+    """
+    results = []
+    pairs = [
+        ("EU27_2020", "api_eurostat"),
+        ("SE",        "emn_ppi_sweden"),
+    ]
+    for geo, idx_id in pairs:
+        data = await _get_json(
+            f"{_BASE}/sts_inppd_m",
+            {"geo": geo, "nace_r2": "B-E36", "s_adj": "NSA", "unit": "I15",
+             "format": "JSON", "lang": "EN"},
+        )
+        if data:
+            results.extend(_parse_sdmx_single(data, idx_id))
+    return results

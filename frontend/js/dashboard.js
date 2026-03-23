@@ -3,6 +3,7 @@ import { api, showToast, fmtPct, fmtVal, pctClass, segBadge, sourceBadge, downlo
 let allIndices = [];
 let panelChart = null;
 let selectedId = null;
+let timeWindow = 24;  // default: show last 24 periods in panel
 
 // Active filter state (read at download time)
 const filters = { segment: '', source: '', category: '', q: '' };
@@ -87,14 +88,15 @@ async function openPanel(indexId) {
     // Set calculator link
     document.getElementById('open-in-calc').href = `/calculator.html?index_id=${indexId}`;
 
-    // Chart
-    const series36 = detail.series.slice(-36);
-    const labels = series36.map(d => d.period);
-    const values = series36.map(d => d.value);
+    // Chart — use selected time window
+    const seriesSlice = detail.series.slice(-timeWindow);
+    const labels = seriesSlice.map(d => d.period);
+    const values = seriesSlice.map(d => d.value);
     renderPanelChart(labels, values, detail.name);
 
-    // Mini table — last 12 months
-    const last12 = detail.series.slice(-12).reverse();
+    // Mini table — use time window (min 12)
+    const tableN = Math.max(timeWindow, 12);
+    const last12 = detail.series.slice(-tableN).reverse();
     const miniTbody = document.getElementById('mini-tbody');
     miniTbody.innerHTML = last12.map(r => `
       <tr>
@@ -170,6 +172,17 @@ function applyFilters() {
   });
   renderTable(filtered);
 }
+
+// ── Time window ────────────────────────────────────────────────────────────
+document.querySelectorAll('.tw-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tw-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    timeWindow = parseInt(btn.dataset.window);
+    // Re-render panel if one is already open
+    if (selectedId) openPanel(selectedId);
+  });
+});
 
 ['f-segment','f-source','f-category'].forEach(id => {
   document.getElementById(id).addEventListener('change', applyFilters);
