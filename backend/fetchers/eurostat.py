@@ -177,11 +177,11 @@ async def fetch_ppi_eu() -> List[Dict]:
 
 
 async def fetch_lci_eu() -> List[Dict]:
-    """prim_lci_eu — EU Labour Cost Index quarterly."""
+    """prim_lci_eu — EU Labour Cost Index quarterly (lc_lci_r2_q, 2020=100)."""
     data = await _get_json(
-        f"{_BASE}/lc_lci_lev",
-        {"geo": "EU27_2020", "indic_lc": "LCI", "nace_r2": "B-N", "s_adj": "NSA",
-         "unit": "I16", "format": "JSON", "lang": "EN"},
+        f"{_BASE}/lc_lci_r2_q",
+        {"geo": "EU27_2020", "nace_r2": "B-N", "s_adj": "NSA",
+         "unit": "I20", "format": "JSON", "lang": "EN"},
     )
     if not data:
         return []
@@ -221,11 +221,11 @@ async def fetch_emn_de() -> List[Dict]:
     if data_ppi:
         results.extend(_parse_sdmx_single(data_ppi, "emn_ppi_de"))
 
-    # emn_labor_de — quarterly (Eurostat LCI is quarterly)
+    # emn_labor_de — quarterly (Eurostat LCI lc_lci_r2_q, base 2020=100)
     data_lci = await _get_json(
-        f"{_BASE}/lc_lci_lev",
-        {"geo": "DE", "indic_lc": "LCI", "nace_r2": "B-N", "s_adj": "NSA",
-         "unit": "I16", "format": "JSON", "lang": "EN"},
+        f"{_BASE}/lc_lci_r2_q",
+        {"geo": "DE", "nace_r2": "B-N", "s_adj": "NSA",
+         "unit": "I20", "format": "JSON", "lang": "EN"},
     )
     if data_lci:
         results.extend(_parse_sdmx_single(data_lci, "emn_labor_de"))
@@ -260,11 +260,11 @@ async def fetch_regional_cpi() -> List[Dict]:
 
 
 async def fetch_regional_lci() -> List[Dict]:
-    """reg_lci_{de|fr|...} — Eurostat Labour Cost Index quarterly."""
+    """reg_lci_{de|fr|...} — Eurostat Labour Cost Index quarterly (lc_lci_r2_q, 2020=100)."""
     data = await _get_json(
-        f"{_BASE}/lc_lci_lev",
-        {"geo": EU_GEOS, "indic_lc": "LCI", "nace_r2": "B-N", "s_adj": "NSA",
-         "unit": "I16", "sinceTimePeriod": "2015-Q1", "format": "JSON", "lang": "EN"},
+        f"{_BASE}/lc_lci_r2_q",
+        {"geo": EU_GEOS, "nace_r2": "B-N", "s_adj": "NSA",
+         "unit": "I20", "sinceTimePeriod": "2015-Q1", "format": "JSON", "lang": "EN"},
     )
     if not data:
         return []

@@ -34,11 +34,12 @@ VALID_BLS_SERIES = {k: v for k, v in BLS_SERIES.items()
 
 # Confirmed BLS series IDs (verified format)
 REAL_BLS_SERIES = {
-    "WPS00000000":     "prim_ppi_us_bls",    # PPI All Commodities (WPS)
+    "WPSFD4111":       "prim_ppi_us_bls",    # PPI Finished Goods (replaces invalid WPS00000000)
+    "WPUID61":         "prim_ppi_int_bls",   # PPI Intermediate Materials (replaces invalid EIUIR)
     "CUUR0000SA0":     "prim_cpi_us",         # CPI All Urban Consumers
     "PCU325412325412": "api_ppi_pharma",      # PPI Pharmaceutical Manufacturing
-    "PCU3261--3261--": "prim_ppi_aptar",      # PPI Plastics product mfg
-    "PCU3261--3261--1":"prim_ppi_union",       # PPI Plastics (subtotal)
+    "PCU3261--3261--": "prim_ppi_aptar",      # PPI Plastics product mfg (Aptar proxy)
+    "WPU00000000":     "prim_ppi_union",      # PPI All Commodities (Union proxy; PCU3261--3261--1 invalid)
 }
 
 
