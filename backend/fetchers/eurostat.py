@@ -26,12 +26,25 @@ _GEO_TO_ISO = {
 
 
 async def _get_json(url: str, params: dict) -> Optional[dict]:
-    """GET with retry + exponential backoff. Returns None on failure."""
+    """
+    GET with retry + exponential backoff. Returns None on failure.
+    Params values that contain '+' are split and sent as repeated query params
+    (Eurostat requires geo=DE&geo=SE, NOT geo=DE%2BSE).
+    """
     import asyncio
+    # Build list-of-tuples so repeated params are handled correctly
+    param_list = []
+    for k, v in params.items():
+        if isinstance(v, str) and "+" in v and k in ("geo",):
+            for part in v.split("+"):
+                param_list.append((k, part))
+        else:
+            param_list.append((k, v))
+
     async with httpx.AsyncClient(timeout=_TIMEOUT, follow_redirects=True) as client:
         for attempt, delay in enumerate(_BACKOFF):
             try:
-                r = await client.get(url, params=params)
+                r = await client.get(url, params=param_list)
                 r.raise_for_status()
                 return r.json()
             except Exception as exc:
@@ -227,7 +240,7 @@ async def fetch_regional_ppi() -> List[Dict]:
     data = await _get_json(
         f"{_BASE}/sts_inppd_m",
         {"geo": EU_GEOS, "nace_r2": "B-E36", "s_adj": "NSA", "unit": "I15",
-         "format": "JSON", "lang": "EN"},
+         "sinceTimePeriod": "2015-01", "format": "JSON", "lang": "EN"},
     )
     if not data:
         return []
@@ -239,7 +252,7 @@ async def fetch_regional_cpi() -> List[Dict]:
     data = await _get_json(
         f"{_BASE}/prc_hicp_midx",
         {"geo": EU_GEOS, "coicop": "CP00", "unit": "I15",
-         "format": "JSON", "lang": "EN"},
+         "sinceTimePeriod": "2015-01", "format": "JSON", "lang": "EN"},
     )
     if not data:
         return []
@@ -251,7 +264,7 @@ async def fetch_regional_lci() -> List[Dict]:
     data = await _get_json(
         f"{_BASE}/lc_lci_lev",
         {"geo": EU_GEOS, "indic_lc": "LCI", "nace_r2": "B-N", "s_adj": "NSA",
-         "unit": "I16", "format": "JSON", "lang": "EN"},
+         "unit": "I16", "sinceTimePeriod": "2015-Q1", "format": "JSON", "lang": "EN"},
     )
     if not data:
         return []
@@ -263,7 +276,7 @@ async def fetch_regional_energy() -> List[Dict]:
     data = await _get_json(
         f"{_BASE}/nrg_pc_205",
         {"geo": EU_GEOS, "unit": "KWH", "nrg_cons": "MWH20-499", "tax": "X_TAX",
-         "format": "JSON", "lang": "EN"},
+         "sinceTimePeriod": "2015-S1", "format": "JSON", "lang": "EN"},
     )
     if not data:
         return []

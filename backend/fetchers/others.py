@@ -39,26 +39,32 @@ async def _get(url: str, params: dict = None, headers: dict = None) -> Optional[
 async def fetch_scb_sweden() -> List[Dict]:
     """
     emn_aki_blue, emn_aki_white — SCB PxWeb AKI (labour cost index).
+    Tables: AM0301A/AKIAM07 (wage-earners) and AM0301A/AKITM07 (salaried).
     emn_ppi_sweden is now fetched via Eurostat; AKI only here.
     """
     results: List[Dict] = []
-    # SCB AKI tables — filter to last 60 time periods to avoid payload limit
+    # SCB AKI tables (AM0301A) — use Preliminary figures (AM0301AA) as Definitive lags
+    _BASE_SCB = "https://api.scb.se/OV0104/v1/doris/en/ssd/AM/AM0301/AM0301A"
     tasks = [
         (
-            "https://api.scb.se/OV0104/v1/doris/en/ssd/AM/AM0110/AM0110A/AKIKvMan",
+            f"{_BASE_SCB}/AKIAM07",
             {
                 "query": [
-                    {"code": "Tid", "selection": {"filter": "top", "values": ["60"]}}
+                    {"code": "ContentsCode",
+                     "selection": {"filter": "item", "values": ["AM0301AA"]}},
+                    {"code": "Tid", "selection": {"filter": "top", "values": ["120"]}},
                 ],
                 "response": {"format": "JSON"},
             },
             "emn_aki_blue",
         ),
         (
-            "https://api.scb.se/OV0104/v1/doris/en/ssd/AM/AM0110/AM0110A/AKIKvTjm",
+            f"{_BASE_SCB}/AKITM07",
             {
                 "query": [
-                    {"code": "Tid", "selection": {"filter": "top", "values": ["60"]}}
+                    {"code": "ContentsCode",
+                     "selection": {"filter": "item", "values": ["AM0301AC"]}},
+                    {"code": "Tid", "selection": {"filter": "top", "values": ["120"]}},
                 ],
                 "response": {"format": "JSON"},
             },
@@ -209,10 +215,10 @@ async def fetch_istat_italy() -> List[Dict]:
 # ── ONS UK ────────────────────────────────────────────────────────────────────
 
 async def fetch_ons_uk() -> List[Dict]:
-    """emn_cpi_uk — UK ONS CPI All Items (D7G7, MM23 dataset)."""
-    # D7G7 = CPI All Items Index (2015=100) from MM23 dataset
-    url = "https://api.ons.gov.uk/v1/timeseries/D7G7/dataset/MM23/data"
-    r = await _get(url)
+    """emn_cpi_uk — UK ONS CPI All Items (D7G7, MM23 dataset, 2015=100)."""
+    # ONS Reader API: /v1/data?uri=<content-path>
+    url = "https://api.ons.gov.uk/v1/data"
+    r = await _get(url, params={"uri": "/economy/inflationandpriceindices/timeseries/d7g7/mm23"})
     if not r:
         return []
     try:
@@ -287,17 +293,17 @@ async def fetch_oecd() -> List[Dict]:
     Uses the new sdmx.oecd.org endpoint (stats.oecd.org was retired).
     """
     results = []
-    # OECD SDMX v2 format: CPI index 2015=100, monthly
+    # OECD SDMX via public/rest endpoint — CPI YoY growth rate (GY), monthly
+    # Note: these indices store growth-rate values (% YoY), not index levels
+    _OECD_BASE = "https://sdmx.oecd.org/public/rest/data/OECD.SDD.TPS,DSD_PRICES@DF_PRICES_ALL,1.0"
     tasks = [
         (
-            "https://sdmx.oecd.org/v2/data/OECD.SDD.STES,DP_LIVE,/"
-            "G20.CPI.TOT.IDX2015.M/all"
+            f"{_OECD_BASE}/G20.M.N.CPI.._T.N.GY"
             "?startPeriod=2015-01&format=jsondata&dimensionAtObservation=AllDimensions",
             "prim_cpi_g20",
         ),
         (
-            "https://sdmx.oecd.org/v2/data/OECD.SDD.STES,DP_LIVE,/"
-            "OECD.CPI.TOT.IDX2015.M/all"
+            f"{_OECD_BASE}/OECD.M.N.CPI.._T.N.GY"
             "?startPeriod=2015-01&format=jsondata&dimensionAtObservation=AllDimensions",
             "log_cpi_general",
         ),
@@ -305,7 +311,7 @@ async def fetch_oecd() -> List[Dict]:
     async with httpx.AsyncClient(timeout=60, follow_redirects=True) as client:
         for url, idx_id in tasks:
             try:
-                r = await client.get(url, headers={"Accept": "application/vnd.sdmx.data+json;version=2"})
+                r = await client.get(url, headers={"Accept": "application/json"})
                 r.raise_for_status()
                 data = r.json()
                 rows = _parse_oecd_v2(data, idx_id)
